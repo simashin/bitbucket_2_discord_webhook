@@ -14,8 +14,8 @@ post '/' => sub {
 		my $c = shift;
 		my $bb_json = $c->req->json;
 
-		my $msg = create_message($bb_json);
-		Mojo::UserAgent->new()->post($cfg->{discord_webhook_url} => json => {content => $msg});
+		my $embeds = create_message($bb_json);
+		Mojo::UserAgent->new()->post($cfg->{discord_webhook_url} => json => {embeds => $embeds});
 
 		$c->render(json => {res => 'Ok'});
 };
@@ -26,19 +26,31 @@ app->start;
 sub create_message {
 	my $bb_json = shift;
 
-	my $msg = '';
+	my $embeds = [];
 	if ($bb_json->{push}) {
-		my $commit_text = $bb_json->{push}{changes}[0]{commits}[0]{message};
-		my $author_name = $bb_json->{push}{changes}[0]{commits}[0]{author}{user}{display_name};
-		my $link = $bb_json->{push}{changes}[0]{commits}[0]{links}{html}{href};
-		$msg = "new commit by $author_name \" $commit_text \"\n$link\n";
+		for my $commit (@{$bb_json->{push}{changes}[0]{commits}}) {
+			my $commit_text = $commit->{message};
+			my $author_name = $commit->{author}{user}{display_name};
+			my $link = $commit->{links}{html}{href};
+			push @$embeds,
+				{
+					title => "new commit by $author_name",
+					color => 2263842,
+					description => $commit_text . $link
+				};
+		}
 	}
 	if ($bb_json->{comment}) {
 		my $comment_text = $bb_json->{comment}{content}{raw};
 		my $author_name = $bb_json->{comment}{user}{display_name};
 		my $link = $bb_json->{comment}{links}{html}{href};
-		$msg .= "new comment by $author_name \" $comment_text \"\n$link\n";
+		push @$embeds,
+				{
+					title => "new comment by $author_name",
+					color => 6908265,
+					description => $comment_text. "\n" . $link
+				};
 	}
 
-	return $msg;
+	return $embeds;
 }
