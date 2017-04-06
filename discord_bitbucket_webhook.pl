@@ -28,13 +28,15 @@ sub create_message {
 
 	my $embeds = [];
 	if ($bb_json->{push}) {
+		my $repo_name = $bb_json->{repository}{name};
+		my $branch_name = $bb_json->{push}{changes}[0]{new}{name};
 		for my $commit (@{$bb_json->{push}{changes}[0]{commits}}) {
 			my $commit_text = $commit->{message};
 			my $author_name = $commit->{author}{user}{display_name};
 			my $link = $commit->{links}{html}{href};
 			push @$embeds,
 				{
-					title => "new commit by $author_name",
+					title => "[$repo_name/$branch_name] new commit by $author_name",
 					color => 2263842,
 					description => $commit_text . $link
 				};
